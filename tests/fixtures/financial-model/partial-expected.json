@@ -1,0 +1,188 @@
+{
+  "artifact_type": "financial-model",
+  "assumptions": [
+    "Leads were not exported for this window."
+  ],
+  "created_at": "2026-07-11T10:30:00Z",
+  "currency": "USD",
+  "data_lifecycle": {
+    "access": {
+      "access_log_locator": "runs/demo-run-001/access-log.json",
+      "authorized_roles": [
+        "demo-operator"
+      ],
+      "owner": "demo-owner"
+    },
+    "classification": "internal",
+    "deletion": {
+      "method": "Operator-defined secure deletion",
+      "status": "scheduled",
+      "verification_artifact_locator": null,
+      "verification_required": true
+    },
+    "encryption": {
+      "at_rest": "verified",
+      "evidence_refs": [
+        "operator-attestation:encrypted-demo-root",
+        "transport:https-only"
+      ],
+      "in_transit": "verified"
+    },
+    "incident": {
+      "owner": "demo-owner",
+      "record_locator": null,
+      "reporting_channel": "Private repository security advisory",
+      "status": "not-triggered"
+    },
+    "lifecycle_id": "demo-lifecycle",
+    "retention": {
+      "delete_after": "2026-07-12T10:00:00Z",
+      "exception_reason": null,
+      "minimum_seconds": 0,
+      "mode": "operator-defined",
+      "purpose": "Complete and verify the sanitized demo run"
+    },
+    "schema_version": "1.0.0"
+  },
+  "inputs": {
+    "clicks": 0,
+    "conversions": 0,
+    "customer_lifetime_value": 300,
+    "gross_margin_rate": 0.4,
+    "impressions": 30000,
+    "new_customers": 0,
+    "platform_revenue": 0,
+    "spend": 1200,
+    "total_marketing_spend": 1200,
+    "variable_cost_rate": 0.5
+  },
+  "period": {
+    "end": "2026-06-30",
+    "start": "2026-06-01"
+  },
+  "requested_metrics": [
+    "cpc",
+    "cvr",
+    "cpl",
+    "roas",
+    "contribution_margin_rate",
+    "break_even_roas",
+    "cac",
+    "ltv_cac"
+  ],
+  "results": [
+    {
+      "inputs": {
+        "clicks": 0,
+        "conversions": 0,
+        "customer_lifetime_value": 300,
+        "gross_margin_rate": 0.4,
+        "impressions": 30000,
+        "new_customers": 0,
+        "platform_revenue": 0,
+        "spend": 1200,
+        "total_marketing_spend": 1200,
+        "variable_cost_rate": 0.5
+      },
+      "metrics": [
+        {
+          "formula": "spend / clicks",
+          "id": "cpc",
+          "input_refs": [
+            "spend",
+            "clicks"
+          ],
+          "undefined_reason": "zero_denominator:clicks",
+          "unit": "currency",
+          "value": null
+        },
+        {
+          "formula": "conversions / clicks * 100",
+          "id": "cvr",
+          "input_refs": [
+            "conversions",
+            "clicks"
+          ],
+          "undefined_reason": "zero_denominator:clicks",
+          "unit": "percent",
+          "value": null
+        },
+        {
+          "formula": "spend / leads",
+          "id": "cpl",
+          "input_refs": [
+            "spend",
+            "leads"
+          ],
+          "undefined_reason": "missing_input:leads",
+          "unit": "currency",
+          "value": null
+        },
+        {
+          "formula": "platform_revenue / spend",
+          "id": "roas",
+          "input_refs": [
+            "platform_revenue",
+            "spend"
+          ],
+          "undefined_reason": null,
+          "unit": "ratio",
+          "value": 0.0
+        },
+        {
+          "formula": "gross_margin_rate - variable_cost_rate",
+          "id": "contribution_margin_rate",
+          "input_refs": [
+            "gross_margin_rate",
+            "variable_cost_rate"
+          ],
+          "undefined_reason": null,
+          "unit": "rate",
+          "value": -0.1
+        },
+        {
+          "formula": "1 / contribution_margin_rate",
+          "id": "break_even_roas",
+          "input_refs": [
+            "contribution_margin_rate"
+          ],
+          "undefined_reason": "negative_denominator:contribution_margin_rate",
+          "unit": "ratio",
+          "value": null
+        },
+        {
+          "formula": "total_marketing_spend / new_customers",
+          "id": "cac",
+          "input_refs": [
+            "total_marketing_spend",
+            "new_customers"
+          ],
+          "undefined_reason": "zero_denominator:new_customers",
+          "unit": "currency",
+          "value": null
+        },
+        {
+          "formula": "customer_lifetime_value / cac",
+          "id": "ltv_cac",
+          "input_refs": [
+            "customer_lifetime_value",
+            "cac"
+          ],
+          "undefined_reason": "upstream_undefined:cac",
+          "unit": "ratio",
+          "value": null
+        }
+      ],
+      "scenario_id": "base"
+    }
+  ],
+  "run_id": "demo-run-002",
+  "scenarios": [
+    {
+      "id": "base",
+      "overrides": {}
+    }
+  ],
+  "schema_version": "1.0.0",
+  "status": "partial"
+}

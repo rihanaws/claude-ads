@@ -151,6 +151,22 @@ class MutationPlan(TypedDict):
     data_lifecycle: DataLifecycle
 
 
+class FinancialModel(TypedDict):
+    schema_version: Literal["1.0.0"]
+    artifact_type: Literal["financial-model"]
+    run_id: str
+    created_at: str
+    currency: str
+    period: dict[str, str]
+    requested_metrics: list[str]
+    inputs: dict[str, float]
+    scenarios: list[dict[str, Any]]
+    assumptions: list[str]
+    status: Literal["complete", "partial"]
+    results: list[dict[str, Any]]
+    data_lifecycle: DataLifecycle
+
+
 class OrchestrationRun(TypedDict):
     schema_version: Literal["1.0.0"]
     artifact_type: Literal["orchestration-run"]

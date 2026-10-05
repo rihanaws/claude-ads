@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ai-marketing-hub:claude-ads:schema:core:v1:financial-model.schema.json",
+  "title": "FinancialModel v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "created_at",
+    "currency",
+    "period",
+    "requested_metrics",
+    "inputs",
+    "scenarios",
+    "assumptions",
+    "status",
+    "results",
+    "data_lifecycle"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "artifact_type": {
+      "const": "financial-model"
+    },
+    "run_id": {
+      "$ref": "urn:ai-marketing-hub:claude-ads:schema:core:v1:workflow-common.schema.json#/$defs/id"
+    },
+    "created_at": {
+      "$ref": "urn:ai-marketing-hub:claude-ads:schema:core:v1:workflow-common.schema.json#/$defs/datetime"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "$ref": "urn:ai-marketing-hub:claude-ads:schema:core:v1:workflow-common.schema.json#/$defs/date"
+        },
+        "end": {
+          "$ref": "urn:ai-marketing-hub:claude-ads:schema:core:v1:workflow-common.schema.json#/$defs/date"
+        }
+      }
+    },
+    "requested_metrics": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "cpa",
+          "cpl",
+          "cpc",
+          "cpm",
+          "ctr",
+          "cvr",
+          "aov",
+          "roas",
+          "mer",
+          "contribution_margin_rate",
+          "break_even_roas",
+          "break_even_cpa",
+          "cac",
+          "ltv_cac",
+          "monthly_contribution_per_customer",
+          "cac_payback_months"
+        ]
+      }
+    },
+    "inputs": {
+      "$ref": "#/$defs/inputs"
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "overrides"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "base",
+              "downside",
+              "upside"
+            ]
+          },
+          "overrides": {
+            "$ref": "#/$defs/inputs"
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "$ref": "urn:ai-marketing-hub:claude-ads:schema:core:v1:workflow-common.schema.json#/$defs/string_array"
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial"
+      ]
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "inputs",
+          "metrics"
+        ],
+        "properties": {
+          "scenario_id": {
+            "enum": [
+              "base",
+              "downside",
+              "upside"
+            ]
+          },
+          "inputs": {
+            "$ref": "#/$defs/inputs"
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/metric"
+            }
+          }
+        }
+      }
+    },
+    "data_lifecycle": {
+      "$ref": "urn:ai-marketing-hub:claude-ads:schema:core:v1:data-lifecycle.schema.json"
+    }
+  },
+  "$defs": {
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "spend": {
+          "type": "number",
+          "minimum": 0
+        },
+        "platform_revenue": {
+          "type": "number",
+          "minimum": 0
+        },
+        "business_revenue": {
+          "type": "number",
+          "minimum": 0
+        },
+        "total_marketing_spend": {
+          "type": "number",
+          "minimum": 0
+        },
+        "customer_lifetime_value": {
+          "type": "number",
+          "minimum": 0
+        },
+        "monthly_revenue_per_customer": {
+          "type": "number",
+          "minimum": 0
+        },
+        "impressions": {
+          "type": "number",
+          "minimum": 0
+        },
+        "clicks": {
+          "type": "number",
+          "minimum": 0
+        },
+        "conversions": {
+          "type": "number",
+          "minimum": 0
+        },
+        "leads": {
+          "type": "number",
+          "minimum": 0
+        },
+        "orders": {
+          "type": "number",
+          "minimum": 0
+        },
+        "new_customers": {
+          "type": "number",
+          "minimum": 0
+        },
+        "gross_margin_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "variable_cost_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "formula",
+        "input_refs",
+        "unit",
+        "value",
+        "undefined_reason"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "cpa",
+            "cpl",
+            "cpc",
+            "cpm",
+            "ctr",
+            "cvr",
+            "aov",
+            "roas",
+            "mer",
+            "contribution_margin_rate",
+            "break_even_roas",
+            "break_even_cpa",
+            "cac",
+            "ltv_cac",
+            "monthly_contribution_per_customer",
+            "cac_payback_months"
+          ]
+        },
+        "formula": {
+          "$ref": "urn:ai-marketing-hub:claude-ads:schema:core:v1:workflow-common.schema.json#/$defs/nonempty"
+        },
+        "input_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "urn:ai-marketing-hub:claude-ads:schema:core:v1:workflow-common.schema.json#/$defs/nonempty"
+          }
+        },
+        "unit": {
+          "enum": [
+            "currency",
+            "percent",
+            "ratio",
+            "rate",
+            "months"
+          ]
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "undefined_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(missing_input|upstream_undefined|zero_denominator|negative_denominator|non_positive_margin):[a-z_]+$"
+        }
+      }
+    }
+  }
+}

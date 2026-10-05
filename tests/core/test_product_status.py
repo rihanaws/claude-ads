@@ -86,3 +86,23 @@ def test_repository_status_and_next_cli_are_machine_readable(repo_root: Path, ca
     next_output = json.loads(capsys.readouterr().out)
     assert set(next_output) == {"schema_version", "as_of", "selection_policy", "next_blocker"}
     assert next_output["next_blocker"] == status["next_blocker"]
+
+
+def test_disabled_workflow_capability_is_reported_and_required(tmp_path: Path, repo_root: Path):
+    root = _artifact_root(tmp_path, repo_root)
+    path = root / "control-plane" / "manifests" / "capability-manifest.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["workflow_capabilities"][0]["status"] = "disabled"
+    manifest["workflow_capabilities"][0]["disabled_reason"] = "Engine withdrawn for review."
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    result = evaluate_product_status(root, as_of=date(2026, 7, 11))
+    assert {
+        "platform": "workflow",
+        "capability_id": "financial-model",
+        "reason": "Engine withdrawn for review.",
+    } in result["capabilities"]["disabled"]
+
+    manifest.pop("workflow_capabilities")
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ProductStatusError, match="unsupported or missing fields"):
+        evaluate_product_status(root, as_of=date(2026, 7, 11))

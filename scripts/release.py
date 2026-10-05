@@ -1303,6 +1303,52 @@ def _json_object(path: Path, label: str) -> dict[str, object]:
     return value
 
 
+def _audit_capability_evidence(
+    root: Path,
+    owner: str,
+    capabilities: list[object],
+    sources: dict[object, object],
+) -> tuple[int, int]:
+    verified_capabilities = 0
+    disabled_capabilities = 0
+    capability_ids: set[str] = set()
+    for capability in capabilities:
+        if not isinstance(capability, dict) or not isinstance(capability.get("id"), str):
+            raise ReleaseError(f"invalid capability for {owner}")
+        capability_id = capability["id"]
+        if capability_id in capability_ids:
+            raise ReleaseError(f"duplicate {owner} capability: {capability_id}")
+        capability_ids.add(capability_id)
+        status = capability.get("status")
+        implementation = capability.get("implementation_paths", [])
+        fixtures = capability.get("fixture_paths", [])
+        tests = capability.get("test_paths", [])
+        source_ids = capability.get("source_ids", [])
+        for relative in [*implementation, *fixtures, *tests]:
+            if not isinstance(relative, str) or not (root / relative).is_file():
+                raise ReleaseError(
+                    f"{owner}.{capability_id} evidence path is missing: {relative!r}"
+                )
+        for source_id in source_ids:
+            if source_id not in sources:
+                raise ReleaseError(
+                    f"{owner}.{capability_id} references unknown source {source_id}"
+                )
+        if status == "fixture-verified":
+            if not implementation or not fixtures or not tests or not source_ids:
+                raise ReleaseError(
+                    f"fixture-verified capability lacks complete evidence: {owner}.{capability_id}"
+                )
+            verified_capabilities += 1
+        elif status == "disabled":
+            if not capability.get("disabled_reason"):
+                raise ReleaseError(
+                    f"disabled capability lacks reason: {owner}.{capability_id}"
+                )
+            disabled_capabilities += 1
+    return verified_capabilities, disabled_capabilities
+
+
 def _check_grounding_and_capabilities(root: Path, as_of: date) -> dict[str, object]:
     source_doc = _json_object(
         root / "control-plane/manifests/source-ledger.json", "source ledger"
@@ -1394,43 +1440,28 @@ def _check_grounding_and_capabilities(root: Path, as_of: date) -> dict[str, obje
         capabilities = platform.get("capabilities")
         if not isinstance(capabilities, list) or not capabilities:
             raise ReleaseError(f"platform has no capabilities: {platform_id}")
-        capability_ids: set[str] = set()
-        for capability in capabilities:
-            if not isinstance(capability, dict) or not isinstance(capability.get("id"), str):
-                raise ReleaseError(f"invalid capability for {platform_id}")
-            capability_id = capability["id"]
-            if capability_id in capability_ids:
-                raise ReleaseError(f"duplicate {platform_id} capability: {capability_id}")
-            capability_ids.add(capability_id)
-            status = capability.get("status")
-            implementation = capability.get("implementation_paths", [])
-            fixtures = capability.get("fixture_paths", [])
-            tests = capability.get("test_paths", [])
-            source_ids = capability.get("source_ids", [])
-            for relative in [*implementation, *fixtures, *tests]:
-                if not isinstance(relative, str) or not (root / relative).is_file():
-                    raise ReleaseError(
-                        f"{platform_id}.{capability_id} evidence path is missing: {relative!r}"
-                    )
-            for source_id in source_ids:
-                if source_id not in sources:
-                    raise ReleaseError(
-                        f"{platform_id}.{capability_id} references unknown source {source_id}"
-                    )
-            if status == "fixture-verified":
-                if not implementation or not fixtures or not tests or not source_ids:
-                    raise ReleaseError(
-                        f"fixture-verified capability lacks complete evidence: {platform_id}.{capability_id}"
-                    )
-                verified_capabilities += 1
-            elif status == "disabled":
-                if not capability.get("disabled_reason"):
-                    raise ReleaseError(
-                        f"disabled capability lacks reason: {platform_id}.{capability_id}"
-                    )
-                disabled_capabilities += 1
+        verified, disabled = _audit_capability_evidence(root, platform_id, capabilities, sources)
+        verified_capabilities += verified
+        disabled_capabilities += disabled
     if len(platform_ids) != 12:
         raise ReleaseError(f"capability manifest covers {len(platform_ids)} platforms, expected 12")
+    workflow_capabilities = capability_doc.get("workflow_capabilities")
+    if not isinstance(workflow_capabilities, list):
+        raise ReleaseError("capability manifest requires a workflow_capabilities array")
+    for capability in workflow_capabilities:
+        if not isinstance(capability, dict):
+            raise ReleaseError("workflow capability is invalid")
+        contract = capability.get("contract")
+        if not isinstance(contract, str) or not (
+            root / "claude_ads_core/schemas/v1" / f"{contract}.schema.json"
+        ).is_file():
+            raise ReleaseError(f"workflow capability names an unknown contract: {contract!r}")
+        skill_path = capability.get("skill_path")
+        if not isinstance(skill_path, str) or not (root / skill_path).is_file():
+            raise ReleaseError(f"workflow capability skill path is missing: {skill_path!r}")
+    verified, disabled = _audit_capability_evidence(root, "workflow", workflow_capabilities, sources)
+    verified_capabilities += verified
+    disabled_capabilities += disabled
     root_on_path = str(root)
     inserted_path = root_on_path not in sys.path
     if inserted_path:

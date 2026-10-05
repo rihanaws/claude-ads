@@ -697,6 +697,33 @@ def test_release_grounding_gate_rejects_stale_load_bearing_source(
         check_grounding_and_capabilities(root, release.date(2026, 9, 11))
 
 
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        (lambda cap: cap.update(test_paths=["tests/core/missing_test.py"]), "workflow.financial-model evidence path is missing"),
+        (lambda cap: cap.update(contract="unknown-contract"), "unknown contract"),
+        (lambda cap: cap.update(skill_path="skills/missing/SKILL.md"), "skill path is missing"),
+        (lambda cap: cap.update(status="disabled"), "disabled capability lacks reason: workflow.financial-model"),
+    ],
+)
+def test_release_grounding_gate_audits_workflow_capabilities(monkeypatch, change, message) -> None:
+    root = RELEASE_SCRIPT.parents[1]
+    manifest = json.loads(
+        (root / "control-plane/manifests/capability-manifest.json").read_text(encoding="utf-8")
+    )
+    change(manifest["workflow_capabilities"][0])
+    original_json_object = release._json_object
+
+    def json_object(path: Path, label: str):
+        if label == "capability manifest":
+            return manifest
+        return original_json_object(path, label)
+
+    monkeypatch.setattr(release, "_json_object", json_object)
+    with pytest.raises(ReleaseError, match=message):
+        check_grounding_and_capabilities(root, release.date(2026, 9, 10))
+
+
 def test_vulnerability_exception_evidence_is_release_packaged() -> None:
     root = RELEASE_SCRIPT.parents[1]
     result = check_vulnerability_exceptions(root, release.date(2026, 9, 10))

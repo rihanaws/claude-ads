@@ -39,6 +39,7 @@ DATA_LIFECYCLE_REFERENCE_CONTRACTS = {
     "monitoring-bundle",
     "experiment-artifact",
     "mutation-plan",
+    "financial-model",
     "orchestration-run",
 }
 
@@ -140,6 +141,7 @@ def test_every_schema_integer_field_accepts_integer_values_at_or_above_minimum(
         "experiment-setup",
         "experiment-readout",
         "mutation-plan",
+        "financial-model",
         "orchestration-run",
     ],
 )
@@ -171,7 +173,7 @@ def test_schema_number_fields_still_accept_fractional_values(workflow_fixtures):
     [
         "data-lifecycle", "setup-profile", "brand-profile", "media-plan", "creative-brief",
         "generation-manifest", "monitoring-bundle", "experiment-setup",
-        "experiment-readout", "mutation-plan", "orchestration-run",
+        "experiment-readout", "mutation-plan", "financial-model", "orchestration-run",
         "orchestration-task", "orchestration-result", "orchestration-gate",
     ],
 )

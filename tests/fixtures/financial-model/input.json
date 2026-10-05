@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "financial-model",
+  "run_id": "demo-run-001",
+  "created_at": "2026-07-11T10:30:00Z",
+  "currency": "USD",
+  "period": {
+    "start": "2026-06-01",
+    "end": "2026-06-30"
+  },
+  "requested_metrics": [
+    "cpa",
+    "cpl",
+    "cpc",
+    "cpm",
+    "ctr",
+    "cvr",
+    "aov",
+    "roas",
+    "mer",
+    "contribution_margin_rate",
+    "break_even_roas",
+    "break_even_cpa",
+    "cac",
+    "ltv_cac",
+    "monthly_contribution_per_customer",
+    "cac_payback_months"
+  ],
+  "inputs": {
+    "spend": 5000,
+    "impressions": 250000,
+    "clicks": 5000,
+    "conversions": 125,
+    "leads": 400,
+    "orders": 100,
+    "platform_revenue": 15000,
+    "business_revenue": 60000,
+    "total_marketing_spend": 12000,
+    "gross_margin_rate": 0.6,
+    "variable_cost_rate": 0.15,
+    "new_customers": 80,
+    "customer_lifetime_value": 900,
+    "monthly_revenue_per_customer": 75
+  },
+  "scenarios": [
+    {
+      "id": "base",
+      "overrides": {}
+    },
+    {
+      "id": "downside",
+      "overrides": {
+        "conversions": 100,
+        "orders": 80,
+        "platform_revenue": 11000,
+        "gross_margin_rate": 0.55
+      }
+    },
+    {
+      "id": "upside",
+      "overrides": {
+        "conversions": 150,
+        "orders": 120,
+        "platform_revenue": 18000
+      }
+    }
+  ],
+  "assumptions": [
+    "Platform revenue is the platform-attributed conversion value for the same window.",
+    "Customer lifetime value is stated on a contribution-margin basis by the operator."
+  ],
+  "data_lifecycle": {
+    "schema_version": "1.0.0",
+    "lifecycle_id": "demo-lifecycle",
+    "classification": "internal",
+    "retention": {
+      "minimum_seconds": 0,
+      "mode": "operator-defined",
+      "delete_after": "2026-07-12T10:00:00Z",
+      "purpose": "Complete and verify the sanitized demo run",
+      "exception_reason": null
+    },
+    "encryption": {
+      "at_rest": "verified",
+      "in_transit": "verified",
+      "evidence_refs": [
+        "operator-attestation:encrypted-demo-root",
+        "transport:https-only"
+      ]
+    },
+    "access": {
+      "owner": "demo-owner",
+      "authorized_roles": [
+        "demo-operator"
+      ],
+      "access_log_locator": "runs/demo-run-001/access-log.json"
+    },
+    "deletion": {
+      "status": "scheduled",
+      "method": "Operator-defined secure deletion",
+      "verification_required": true,
+      "verification_artifact_locator": null
+    },
+    "incident": {
+      "owner": "demo-owner",
+      "reporting_channel": "Private repository security advisory",
+      "status": "not-triggered",
+      "record_locator": null
+    }
+  }
+}

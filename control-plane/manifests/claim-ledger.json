@@ -566,6 +566,18 @@
       "last_verified": "2026-09-10",
       "refresh_due": "2026-10-10",
       "owner": "google-evidence-owner"
+    },
+    {
+      "id": "CLM-0213",
+      "statement": "The v2 financial-model engine computes its catalog of paid-media unit-economics metrics deterministically with Decimal arithmetic from a validated financial-model envelope, emits each undefined metric as null with an explicit reason, and validates its own artifact before output; it does not fetch data, forecast, or apply benchmarks.",
+      "scope": "Offline financial-model calculator and v1 contract only",
+      "classification": "evidence-based",
+      "verdict": "verified",
+      "source_ids": ["claude-ads-financial-model-engine"],
+      "load_bearing": false,
+      "last_verified": "2026-10-04",
+      "refresh_due": "2026-11-03",
+      "owner": "core-owner"
     }
   ]
 }

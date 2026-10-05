@@ -12,6 +12,7 @@ from typing import Any, Sequence
 from . import __version__
 from .adapters import AdapterError, GenericCSVExportAdapter
 from .contracts import CONTRACT_NAMES, ContractError, load_contract, validate_contract
+from .financial_model import FinancialModelError, evaluate_financial_model
 from .reporting import ReportRenderError, write_report_bundle
 from .product_status import ProductStatusError, evaluate_product_status
 from .scoring import ScoringError, score_account, score_portfolio
@@ -44,6 +45,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     portfolio = commands.add_parser("portfolio", help="aggregate account scores")
     portfolio.add_argument("path", help="JSON array of account score records")
+
+    financial = commands.add_parser("financial-model", help="compute a deterministic financial-model artifact")
+    financial.add_argument("path", help="financial-model input envelope JSON")
 
     status = commands.add_parser("status", help="show repository status, or a report bundle when path is supplied")
     status.add_argument("path", nargs="?")
@@ -91,6 +95,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             if not isinstance(accounts, list):
                 raise ScoringError("portfolio input must be an array")
             _emit(score_portfolio(accounts).to_dict())
+        elif args.command == "financial-model":
+            _emit(evaluate_financial_model(_read_json(args.path)))
         elif args.command == "status":
             if args.path:
                 bundle = _read_json(args.path)
@@ -149,7 +155,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         elif args.command == "ingest-export":
             _emit(GenericCSVExportAdapter(args.platform).read_snapshot(args.path))
-    except (AdapterError, ContractError, ProductStatusError, ReportRenderError, ScoringError) as exc:
+    except (
+        AdapterError,
+        ContractError,
+        FinancialModelError,
+        ProductStatusError,
+        ReportRenderError,
+        ScoringError,
+    ) as exc:
         print(json.dumps({"status": "invalid", "error": str(exc)}, sort_keys=True), file=sys.stderr)
         return 2
     return 0

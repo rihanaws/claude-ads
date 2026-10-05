@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "financial-model",
+  "run_id": "demo-run-002",
+  "created_at": "2026-07-11T10:30:00Z",
+  "currency": "USD",
+  "period": {
+    "start": "2026-06-01",
+    "end": "2026-06-30"
+  },
+  "requested_metrics": [
+    "cpc",
+    "cvr",
+    "cpl",
+    "roas",
+    "contribution_margin_rate",
+    "break_even_roas",
+    "cac",
+    "ltv_cac"
+  ],
+  "inputs": {
+    "spend": 1200,
+    "impressions": 30000,
+    "clicks": 0,
+    "conversions": 0,
+    "platform_revenue": 0,
+    "gross_margin_rate": 0.4,
+    "variable_cost_rate": 0.5,
+    "total_marketing_spend": 1200,
+    "new_customers": 0,
+    "customer_lifetime_value": 300
+  },
+  "scenarios": [
+    {
+      "id": "base",
+      "overrides": {}
+    }
+  ],
+  "assumptions": [
+    "Leads were not exported for this window."
+  ],
+  "data_lifecycle": {
+    "schema_version": "1.0.0",
+    "lifecycle_id": "demo-lifecycle",
+    "classification": "internal",
+    "retention": {
+      "minimum_seconds": 0,
+      "mode": "operator-defined",
+      "delete_after": "2026-07-12T10:00:00Z",
+      "purpose": "Complete and verify the sanitized demo run",
+      "exception_reason": null
+    },
+    "encryption": {
+      "at_rest": "verified",
+      "in_transit": "verified",
+      "evidence_refs": [
+        "operator-attestation:encrypted-demo-root",
+        "transport:https-only"
+      ]
+    },
+    "access": {
+      "owner": "demo-owner",
+      "authorized_roles": [
+        "demo-operator"
+      ],
+      "access_log_locator": "runs/demo-run-001/access-log.json"
+    },
+    "deletion": {
+      "status": "scheduled",
+      "method": "Operator-defined secure deletion",
+      "verification_required": true,
+      "verification_artifact_locator": null
+    },
+    "incident": {
+      "owner": "demo-owner",
+      "reporting_channel": "Private repository security advisory",
+      "status": "not-triggered",
+      "record_locator": null
+    }
+  }
+}

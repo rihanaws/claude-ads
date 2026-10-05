@@ -922,6 +922,21 @@
       "license": "Google Help content terms; citation only",
       "redistribution": "metadata-only",
       "claim_ids": ["CLM-0212"]
+    },
+    {
+      "id": "claude-ads-financial-model-engine",
+      "title": "Claude Ads v2 deterministic financial-model engine, contract, and fixture tests",
+      "locator": "claude_ads_core/financial_model.py",
+      "source_type": "repository-local",
+      "authority_tier": 1,
+      "retrieved_at": "2026-10-04",
+      "refresh_due": "2026-11-03",
+      "version": "1.0.0",
+      "confidence": "high",
+      "license": "MIT",
+      "redistribution": "public-safe",
+      "claim_ids": ["CLM-0213"],
+      "notes": "Formulas are definitional unit economics over operator-supplied inputs; the engine makes no platform, policy, or benchmark claim."
     }
   ]
 }

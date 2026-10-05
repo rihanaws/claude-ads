@@ -100,14 +100,22 @@ filename with another worker's output — a run's artifacts live under
 - `reporting.py`: renders Markdown/HTML/PDF from one validated
   `ReportBundle` JSON — all three are views of the same artifact, never
   independently generated.
+- `financial_catalog.py` / `financial_model.py`: the deterministic
+  unit-economics engine behind `skills/ads-math`. The catalog table drives
+  both the arithmetic and the formula text, and the `financial-model`
+  validator rejects any formula that differs from it. Undefined metrics are
+  null with a reason (making the artifact `partial`), never an error.
 - `cli.py`: thin argparse wrapper over all of the above
-  (`validate`, `score`, `portfolio`, `status`, `next`, `render`/`report`,
-  `ingest-export`).
+  (`validate`, `score`, `portfolio`, `financial-model`, `status`, `next`,
+  `render`/`report`, `ingest-export`).
 
 **`control-plane/` is the non-code source of truth** that both the prompts and
 the Python core defer to instead of hardcoding facts:
 - `manifests/capability-manifest.json`: authoritative per-platform
-  read/write capability state (what adapters can actually do right now).
+  read/write capability state (what adapters can actually do right now), plus
+  `workflow_capabilities` for cross-platform engines such as `financial-model`.
+  Both `scripts/release.py` and `product_status.py` enforce exactly twelve
+  platforms and the same evidence rules for both sections.
 - `manifests/control-registry.json` + `scoring-profiles.json`: the full audit
   control catalog and which profiles are enabled for scoring. All twelve
   platform scoring profiles are currently **disabled** pending per-control

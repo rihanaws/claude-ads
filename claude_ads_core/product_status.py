@@ -24,6 +24,10 @@ MATURITY_IDS = (
     "release-ready",
 )
 CAPABILITY_STATUSES = {"declared", "implemented", "fixture-verified", "live-verified", "disabled"}
+CAPABILITY_EVIDENCE_FIELDS = {"id", "status", "implementation_paths", "fixture_paths", "test_paths", "source_ids"}
+PLATFORM_CAPABILITY_FIELDS = CAPABILITY_EVIDENCE_FIELDS | {"mode"}
+WORKFLOW_CAPABILITY_FIELDS = CAPABILITY_EVIDENCE_FIELDS | {"contract", "skill_path"}
+WORKFLOW_OWNER = "workflow"
 RELEASE_CHECK_IDS = (
     "repository-audit",
     "clean-subject",
@@ -191,8 +195,41 @@ def _validate_evidence_ledgers(
     )
 
 
+def _disabled_in(
+    owner: str,
+    capabilities: list[Any],
+    required: set[str],
+) -> list[dict[str, str]]:
+    capability_ids: set[str] = set()
+    disabled: list[dict[str, str]] = []
+    allowed = required | {"disabled_reason"}
+    for cap_index, raw_capability in enumerate(capabilities):
+        if not isinstance(raw_capability, Mapping):
+            raise ProductStatusError(f"{owner}.capabilities[{cap_index}] must be an object")
+        if not required <= set(raw_capability) or set(raw_capability) - allowed:
+            raise ProductStatusError(f"{owner}.capabilities[{cap_index}] has unsupported or missing fields")
+        capability_id = _nonempty(raw_capability.get("id"), f"{owner}.capabilities[{cap_index}].id")
+        status = _nonempty(raw_capability.get("status"), f"{owner}.{capability_id}.status")
+        if capability_id in capability_ids or status not in CAPABILITY_STATUSES:
+            raise ProductStatusError(f"invalid or duplicate capability: {owner}/{capability_id}")
+        capability_ids.add(capability_id)
+        if status == "disabled":
+            disabled.append(
+                {
+                    "platform": owner,
+                    "capability_id": capability_id,
+                    "reason": _nonempty(
+                        raw_capability.get("disabled_reason"),
+                        f"{owner}.{capability_id}.disabled_reason",
+                    ),
+                }
+            )
+    return disabled
+
+
 def _disabled_capabilities(document: Mapping[str, Any]) -> list[dict[str, str]]:
-    if set(document) != {"schema_version", "snapshot_at", "default_mutation_mode", "platforms"}:
+    expected = {"schema_version", "snapshot_at", "default_mutation_mode", "platforms", "workflow_capabilities"}
+    if set(document) != expected:
         raise ProductStatusError("capability manifest has unsupported or missing fields")
     if document.get("schema_version") != "1.0.0" or document.get("default_mutation_mode") != "read-only":
         raise ProductStatusError("capability manifest header is invalid")
@@ -213,32 +250,13 @@ def _disabled_capabilities(document: Mapping[str, Any]) -> list[dict[str, str]]:
         capabilities = raw_platform.get("capabilities")
         if not isinstance(capabilities, list) or not capabilities:
             raise ProductStatusError(f"capability platform {platform} has no capabilities")
-        capability_ids: set[str] = set()
-        for cap_index, raw_capability in enumerate(capabilities):
-            if not isinstance(raw_capability, Mapping):
-                raise ProductStatusError(f"{platform}.capabilities[{cap_index}] must be an object")
-            required = {"id", "mode", "status", "implementation_paths", "fixture_paths", "test_paths", "source_ids"}
-            allowed = required | {"disabled_reason"}
-            if not required <= set(raw_capability) or set(raw_capability) - allowed:
-                raise ProductStatusError(f"{platform}.capabilities[{cap_index}] has unsupported or missing fields")
-            capability_id = _nonempty(raw_capability.get("id"), f"{platform}.capabilities[{cap_index}].id")
-            status = _nonempty(raw_capability.get("status"), f"{platform}.{capability_id}.status")
-            if capability_id in capability_ids or status not in CAPABILITY_STATUSES:
-                raise ProductStatusError(f"invalid or duplicate capability: {platform}/{capability_id}")
-            capability_ids.add(capability_id)
-            if status == "disabled":
-                disabled.append(
-                    {
-                        "platform": platform,
-                        "capability_id": capability_id,
-                        "reason": _nonempty(
-                            raw_capability.get("disabled_reason"),
-                            f"{platform}.{capability_id}.disabled_reason",
-                        ),
-                    }
-                )
+        disabled.extend(_disabled_in(platform, capabilities, PLATFORM_CAPABILITY_FIELDS))
     if platform_ids != PLATFORMS:
         raise ProductStatusError("capability manifest must cover exactly the twelve platforms")
+    workflow_capabilities = document.get("workflow_capabilities")
+    if not isinstance(workflow_capabilities, list):
+        raise ProductStatusError("capability manifest workflow_capabilities must be an array")
+    disabled.extend(_disabled_in(WORKFLOW_OWNER, workflow_capabilities, WORKFLOW_CAPABILITY_FIELDS))
     return sorted(disabled, key=lambda item: (item["platform"], item["capability_id"]))
 
 

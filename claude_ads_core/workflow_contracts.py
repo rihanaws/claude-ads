@@ -12,6 +12,8 @@ from datetime import date, datetime
 from typing import Any, Callable, Mapping, Sequence
 from urllib.parse import urlsplit
 
+from .financial_catalog import INPUT_KINDS, METRICS_BY_ID
+
 
 SCHEMA_VERSION = "1.0.0"
 PLATFORMS = {
@@ -30,10 +32,20 @@ WORKFLOW_CONTRACT_NAMES = (
     "monitoring-bundle",
     "experiment-artifact",
     "mutation-plan",
+    "financial-model",
     "orchestration-run",
     "orchestration-task",
     "orchestration-result",
     "orchestration-gate",
+)
+FINANCIAL_SCENARIOS = {"base", "downside", "upside"}
+FINANCIAL_UNDEFINED_REASON = (
+    r"(missing_input|upstream_undefined|zero_denominator|negative_denominator|non_positive_margin):[a-z_]+"
+)
+FINANCIAL_ENVELOPE_FIELDS = (
+    "schema_version", "artifact_type", "run_id", "created_at", "currency",
+    "period", "requested_metrics", "inputs", "scenarios", "assumptions",
+    "data_lifecycle",
 )
 
 
@@ -92,7 +104,10 @@ def _bool(value: Any, path: str) -> bool:
 def _number(value: Any, path: str, *, minimum: float | None = None) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise WorkflowContractError(f"{path} must be a number")
-    result = float(value)
+    try:
+        result = float(value)
+    except OverflowError as exc:
+        raise WorkflowContractError(f"{path} must be finite") from exc
     if not math.isfinite(result):
         raise WorkflowContractError(f"{path} must be finite")
     if minimum is not None and result < minimum:
@@ -544,6 +559,88 @@ def _validate_mutation(payload: Mapping[str, Any]) -> None:
     _sha256(doc["remote_precondition_sha256"], "$.remote_precondition_sha256")
 
 
+def _financial_inputs(value: Any, path: str) -> Mapping[str, Any]:
+    inputs = _object(value, path)
+    for key, raw in inputs.items():
+        kind = INPUT_KINDS.get(key)
+        if kind is None:
+            raise WorkflowContractError(f"{path} has unknown field(s): {key}")
+        number = _number(raw, f"{path}.{key}", minimum=0)
+        if kind == "rate" and number > 1:
+            raise WorkflowContractError(f"{path}.{key} must be a rate between 0 and 1")
+    return inputs
+
+
+def _validate_financial_envelope(doc: Mapping[str, Any]) -> None:
+    _base(doc, "financial-model")
+    _validate_data_lifecycle_at(doc["data_lifecycle"], "$.data_lifecycle")
+    _string(doc["currency"], "$.currency", pattern=r"[A-Z]{3}")
+    period = _exact(doc["period"], "$.period", ("start", "end"))
+    if _date(period["end"], "$.period.end") < _date(period["start"], "$.period.start"):
+        raise WorkflowContractError("$.period.end must not precede start")
+    requested = _strings(doc["requested_metrics"], "$.requested_metrics", minimum=1)
+    for index, metric_id in enumerate(requested):
+        _enum(metric_id, f"$.requested_metrics[{index}]", set(METRICS_BY_ID))
+    _financial_inputs(doc["inputs"], "$.inputs")
+    scenario_ids: list[str] = []
+    for index, item in enumerate(_list(doc["scenarios"], "$.scenarios", minimum=1)):
+        scenario = _exact(item, f"$.scenarios[{index}]", ("id", "overrides"))
+        scenario_ids.append(_enum(scenario["id"], f"$.scenarios[{index}].id", FINANCIAL_SCENARIOS))
+        _financial_inputs(scenario["overrides"], f"$.scenarios[{index}].overrides")
+    if len(scenario_ids) != len(set(scenario_ids)):
+        raise WorkflowContractError("$.scenarios IDs must be unique")
+    if scenario_ids[0] != "base" or doc["scenarios"][0]["overrides"]:
+        raise WorkflowContractError("$.scenarios must start with base and base must not override inputs")
+    _strings(doc["assumptions"], "$.assumptions")
+
+
+def validate_financial_model_input(payload: Any) -> None:
+    """Validate a financial-model envelope before any metric is computed."""
+    _validate_financial_envelope(_exact(payload, "$", FINANCIAL_ENVELOPE_FIELDS))
+
+
+def _validate_financial_model(payload: Mapping[str, Any]) -> None:
+    doc = _exact(payload, "$", FINANCIAL_ENVELOPE_FIELDS + ("status", "results"))
+    _validate_financial_envelope(doc)
+    status = _enum(doc["status"], "$.status", {"complete", "partial"})
+    scenarios = doc["scenarios"]
+    results = _list(doc["results"], "$.results")
+    if len(results) != len(scenarios):
+        raise WorkflowContractError("$.results must contain one entry per scenario")
+    undefined = False
+    for index, (item, scenario) in enumerate(zip(results, scenarios)):
+        path = f"$.results[{index}]"
+        result = _exact(item, path, ("scenario_id", "inputs", "metrics"))
+        if result["scenario_id"] != scenario["id"]:
+            raise WorkflowContractError(f"{path}.scenario_id must follow $.scenarios order")
+        if _financial_inputs(result["inputs"], f"{path}.inputs") != {**doc["inputs"], **scenario["overrides"]}:
+            raise WorkflowContractError(f"{path}.inputs must equal base inputs with the scenario overrides")
+        metrics = _list(result["metrics"], f"{path}.metrics")
+        for metric_index, raw in enumerate(metrics):
+            metric_path = f"{path}.metrics[{metric_index}]"
+            metric = _exact(raw, metric_path, ("id", "formula", "input_refs", "unit", "value", "undefined_reason"))
+            spec = METRICS_BY_ID.get(metric["id"])
+            if spec is None:
+                raise WorkflowContractError(f"{metric_path}.id is unknown")
+            if (
+                metric["formula"] != spec.formula
+                or metric["input_refs"] != list(spec.operands)
+                or metric["unit"] != spec.unit
+            ):
+                raise WorkflowContractError(f"{metric_path} must match the catalog formula, input_refs, and unit")
+            if metric["value"] is None:
+                _string(metric["undefined_reason"], f"{metric_path}.undefined_reason", pattern=FINANCIAL_UNDEFINED_REASON)
+                undefined = True
+            else:
+                _number(metric["value"], f"{metric_path}.value")
+                if metric["undefined_reason"] is not None:
+                    raise WorkflowContractError(f"{metric_path}.undefined_reason must be null when value is present")
+        if [metric["id"] for metric in metrics] != doc["requested_metrics"]:
+            raise WorkflowContractError(f"{path}.metrics must equal $.requested_metrics in order")
+    if (status == "partial") != undefined:
+        raise WorkflowContractError("$.status must be partial exactly when a metric is undefined")
+
+
 def _validate_orchestration_run(payload: Mapping[str, Any]) -> None:
     required = ("schema_version", "artifact_type", "run_id", "created_at", "objective", "scopes", "phases", "privacy_class", "mutation_authority", "status", "data_lifecycle")
     doc = _exact(payload, "$", required)
@@ -655,6 +752,7 @@ WORKFLOW_VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
     "monitoring-bundle": _validate_monitoring,
     "experiment-artifact": _validate_experiment,
     "mutation-plan": _validate_mutation,
+    "financial-model": _validate_financial_model,
     "orchestration-run": _validate_orchestration_run,
     "orchestration-task": _validate_orchestration_task,
     "orchestration-result": _validate_orchestration_result,

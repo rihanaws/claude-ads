@@ -159,5 +159,8 @@
         {"id": "account-mutation", "mode": "live-write", "status": "disabled", "implementation_paths": [], "fixture_paths": [], "test_paths": [], "source_ids": [], "disabled_reason": "No approved v2 write adapter lifecycle."}
       ]
     }
+  ],
+  "workflow_capabilities": [
+    {"id": "financial-model", "contract": "financial-model", "skill_path": "skills/ads-math/SKILL.md", "status": "fixture-verified", "implementation_paths": ["claude_ads_core/financial_catalog.py", "claude_ads_core/financial_model.py", "claude_ads_core/workflow_contracts.py", "claude_ads_core/schemas/v1/financial-model.schema.json"], "fixture_paths": ["tests/fixtures/financial-model/input.json", "tests/fixtures/financial-model/expected.json", "tests/fixtures/financial-model/partial-input.json", "tests/fixtures/financial-model/partial-expected.json"], "test_paths": ["tests/core/test_financial_model.py"], "source_ids": ["claude-ads-financial-model-engine"]}
   ]
 }

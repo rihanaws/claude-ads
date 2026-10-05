@@ -4,7 +4,7 @@
   "title": "Claude Ads capability manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "snapshot_at", "default_mutation_mode", "platforms"],
+  "required": ["schema_version", "snapshot_at", "default_mutation_mode", "platforms", "workflow_capabilities"],
   "properties": {
     "schema_version": {"const": "1.0.0"},
     "snapshot_at": {"type": "string", "format": "date"},
@@ -13,6 +13,10 @@
       "type": "array",
       "minItems": 1,
       "items": {"$ref": "#/$defs/platform"}
+    },
+    "workflow_capabilities": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/workflow_capability"}
     }
   },
   "$defs": {
@@ -39,6 +43,22 @@
       "properties": {
         "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
         "mode": {"enum": ["export-read", "live-read", "draft-write", "live-write"]},
+        "status": {"enum": ["declared", "implemented", "fixture-verified", "live-verified", "disabled"]},
+        "implementation_paths": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "fixture_paths": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "test_paths": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "source_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "disabled_reason": {"type": "string"}
+      }
+    },
+    "workflow_capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "contract", "skill_path", "status", "implementation_paths", "fixture_paths", "test_paths", "source_ids"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+        "contract": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+        "skill_path": {"type": "string", "minLength": 1},
         "status": {"enum": ["declared", "implemented", "fixture-verified", "live-verified", "disabled"]},
         "implementation_paths": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
         "fixture_paths": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},

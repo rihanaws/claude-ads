@@ -159,8 +159,9 @@ never recompute scores in prompts or report templates.
 
 Validate non-audit workflow artifacts against their installed v1 contract:
 setup and brand profiles, media plans, creative briefs/copy decks, generation
-manifests, monitoring bundles, experiment setup/readout artifacts, and mutation
-plans. Structural validity does not establish source truth, platform eligibility,
+manifests, monitoring bundles, experiment setup/readout artifacts, financial
+models, and mutation plans. Compute unit economics only with
+`python -m claude_ads_core financial-model`; never in a prompt. Structural validity does not establish source truth, platform eligibility,
 provider availability, owner approval, or permission to apply a change.
 
 - Score stable applicable health controls only.
